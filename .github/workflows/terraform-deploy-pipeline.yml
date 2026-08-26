@@ -85,10 +85,48 @@ jobs:
           working_directory: ${{ env.WORKING_DIR }}
           soft_fail: true
 
+  cost-estimate:
+    name: Infracost Estimate
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate cost estimate
+        run: |
+          infracost breakdown --path=${{ env.WORKING_DIR }} \
+            --format=table \
+            --out-file=infracost_output.txt
+
+      - name: Post cost estimate to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const fs = require('fs');
+            const cost = fs.readFileSync('infracost_output.txt', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Estimated Monthly Cost\n\`\`\`\n${cost}\n\`\`\``
+            });
+
+      - name: Save cost estimate artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: breakpoint-cost-estimate
+          path: infracost_output.txt
+
   plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    needs: iac-scan
+    needs: [iac-scan, cost-estimate]
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -145,7 +183,7 @@ jobs:
   apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
-    needs: iac-scan
+    needs: [iac-scan, cost-estimate]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     environment: production-infra
     defaults:

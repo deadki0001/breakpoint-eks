@@ -1,0 +1,91 @@
+# ##############################################################################
+# TOOLING PIPELINE - breakpoint-eks (THRESHOLD)
+#
+# Runs after the cluster exists (manual trigger, not automatic - Terraform
+# apply and tooling install are kept as separate deliberate steps rather
+# than chained, so a cluster can exist without immediately installing
+# everything on it). Authenticates the same way as the Terraform pipeline
+# (OIDC, no static credentials), points kubectl/helm at the cluster via
+# aws eks update-kubeconfig, then installs:
+#   - metrics-server: required for HPA to read real CPU/memory metrics
+#   - kube-prometheus-stack: Prometheus + Grafana + Alertmanager bundled,
+#     the standard way to run this combo on Kubernetes rather than
+#     installing each piece separately
+#
+# How to run:
+#   GitHub repo -> Actions -> BREAKPOINT-EKS Tooling Pipeline -> Run workflow
+# ##############################################################################
+
+name: BREAKPOINT-EKS Tooling Pipeline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  CLUSTER_NAME: breakpoint-eks-dev
+
+jobs:
+  install-tooling:
+    name: Install Observability Tooling
+    runs-on: ubuntu-latest
+    environment: production-infra
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_DEPLOY_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ env.CLUSTER_NAME }} \
+            --region ${{ secrets.AWS_DEPLOY_REGION }}
+
+      - name: Verify cluster access
+        run: kubectl get nodes
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4.2.0
+        with:
+          version: v3.14.4
+
+      - name: Add Helm repos
+        run: |
+          helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+      - name: Install metrics-server
+        run: |
+          helm upgrade --install metrics-server metrics-server/metrics-server \
+            --namespace kube-system \
+            --wait --timeout 5m
+
+      - name: Verify metrics-server
+        run: |
+          sleep 20
+          kubectl top nodes
+
+      - name: Create monitoring namespace
+        run: kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Install kube-prometheus-stack (Prometheus + Grafana)
+        run: |
+          helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            --set grafana.adminPassword=admin \
+            --set prometheus.prometheusSpec.resources.requests.cpu=200m \
+            --set prometheus.prometheusSpec.resources.requests.memory=512Mi \
+            --set grafana.resources.requests.cpu=100m \
+            --set grafana.resources.requests.memory=256Mi \
+            --wait --timeout 10m
+
+      - name: Verify tooling pods
+        run: kubectl get pods -n monitoring
