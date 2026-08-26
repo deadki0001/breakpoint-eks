@@ -84,11 +84,11 @@ module "vpc" {
 module "eks_cluster" {
   source = "../../modules/eks"
 
-  project_name        = "breakpoint-eks-dev"
-  environment          = "dev"
-  cluster_name         = var.cluster_name
-  private_subnet_ids   = module.vpc.private_subnet_ids
-  sso_admin_role_arn   = var.sso_admin_role_arn
+  project_name       = "breakpoint-eks-dev"
+  environment        = "dev"
+  cluster_name       = var.cluster_name
+  private_subnet_ids = module.vpc.private_subnet_ids
+  sso_admin_role_arn = var.sso_admin_role_arn
 }
 
 
