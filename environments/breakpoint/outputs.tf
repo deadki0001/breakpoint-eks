@@ -1,13 +1,13 @@
 output "cluster_name" {
-  value = aws_eks_cluster.breakpoint.name
+  value = module.eks_cluster.cluster_name
 }
 
 output "cluster_endpoint" {
-  value = aws_eks_cluster.breakpoint.endpoint
+  value = module.eks_cluster.cluster_endpoint
 }
 
 output "vpc_id" {
-  value = aws_vpc.breakpoint.id
+  value = module.vpc.vpc_id
 }
 
 output "region" {
@@ -15,5 +15,5 @@ output "region" {
 }
 
 output "kubeconfig_command" {
-  value = "aws eks update-kubeconfig --name ${aws_eks_cluster.breakpoint.name} --region ${var.aws_region}"
+  value = "aws eks update-kubeconfig --name ${module.eks_cluster.cluster_name} --region ${var.aws_region}"
 }
