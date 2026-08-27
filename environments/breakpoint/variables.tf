@@ -20,8 +20,8 @@ variable "sso_admin_role_arn" {
   type        = string
 }
 
-variable "grafana_cloud_api_token" {
-  description = "Grafana Cloud access policy token for managing OnCall resources - passed in via GitHub Actions secret, never committed"
+variable "grafana_oncall_access_token" {
+  description = "Grafana OnCall API token, generated inside OnCall -> Settings -> API Keys - passed in via GitHub Actions secret, never committed"
   type        = string
   sensitive   = true
 }

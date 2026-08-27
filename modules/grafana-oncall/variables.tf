@@ -3,8 +3,8 @@ variable "project_name" {
   type        = string
 }
 
-variable "grafana_cloud_api_token" {
-  description = "Grafana Cloud access policy token with alerts/rules read+write scope"
+variable "grafana_oncall_access_token" {
+  description = "Grafana OnCall API token - generated inside OnCall itself (OnCall -> Settings -> API Keys), NOT the org-level Grafana Cloud access policy token, which does not cover OnCall"
   type        = string
   sensitive   = true
 }
