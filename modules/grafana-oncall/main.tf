@@ -43,6 +43,6 @@ data "grafana_oncall_user" "on_call_engineer" {
 resource "grafana_oncall_escalation" "notify_user" {
   escalation_chain_id = grafana_oncall_escalation_chain.this.id
   type                = "notify_persons"
-  persons_to_notify    = [data.grafana_oncall_user.on_call_engineer.id]
-  position             = 0
+  persons_to_notify   = [data.grafana_oncall_user.on_call_engineer.id]
+  position            = 0
 }
