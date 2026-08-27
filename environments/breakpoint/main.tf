@@ -35,6 +35,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
+    grafana = {
+      source  = "grafana/grafana"
+      version = "~> 3.0"
+    }
   }
 
   backend "s3" {}
@@ -84,11 +88,11 @@ module "vpc" {
 module "eks_cluster" {
   source = "../../modules/eks"
 
-  project_name       = "breakpoint-eks-dev"
-  environment        = "dev"
-  cluster_name       = var.cluster_name
-  private_subnet_ids = module.vpc.private_subnet_ids
-  sso_admin_role_arn = var.sso_admin_role_arn
+  project_name        = "breakpoint-eks-dev"
+  environment          = "dev"
+  cluster_name         = var.cluster_name
+  private_subnet_ids   = module.vpc.private_subnet_ids
+  sso_admin_role_arn   = var.sso_admin_role_arn
 }
 
 
@@ -115,4 +119,23 @@ module "node_group" {
   desired_size   = 2
   min_size       = 1
   max_size       = 3
+}
+
+
+# ##############################################################################
+# GRAFANA CLOUD ONCALL
+# Manages the Alertmanager integration and escalation chain in Grafana Cloud
+# via Terraform rather than clicking through the UI. This is separate from
+# the in-cluster kube-prometheus-stack - it talks to Grafana Cloud's API,
+# not the EKS cluster. Alertmanager (running in-cluster) gets pointed at
+# the webhook URL this module outputs, wired in via a Helm value or
+# Alertmanager config, not via this module directly.
+# ##############################################################################
+
+module "oncall" {
+  source = "../../modules/oncall"
+
+  project_name            = "breakpoint-eks"
+  grafana_cloud_api_token = var.grafana_cloud_api_token
+  grafana_oncall_username = "adkinsdevon"
 }

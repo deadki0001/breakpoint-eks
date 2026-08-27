@@ -19,3 +19,9 @@ variable "sso_admin_role_arn" {
   description = "Your SSO admin role ARN, used for cluster access entry"
   type        = string
 }
+
+variable "grafana_cloud_api_token" {
+  description = "Grafana Cloud access policy token for managing OnCall resources - passed in via GitHub Actions secret, never committed"
+  type        = string
+  sensitive   = true
+}
