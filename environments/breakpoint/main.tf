@@ -88,11 +88,11 @@ module "vpc" {
 module "eks_cluster" {
   source = "../../modules/eks"
 
-  project_name       = "breakpoint-eks-dev"
-  environment        = "dev"
-  cluster_name       = var.cluster_name
-  private_subnet_ids = module.vpc.private_subnet_ids
-  sso_admin_role_arn = var.sso_admin_role_arn
+  project_name        = "breakpoint-eks-dev"
+  environment          = "dev"
+  cluster_name         = var.cluster_name
+  private_subnet_ids   = module.vpc.private_subnet_ids
+  sso_admin_role_arn   = var.sso_admin_role_arn
 }
 
 
@@ -137,5 +137,6 @@ module "oncall" {
 
   project_name            = "breakpoint-eks"
   grafana_cloud_api_token = var.grafana_cloud_api_token
+  grafana_oncall_url      = "https://incident-prod-eu-west-6.grafana.net/oncall"
   grafana_oncall_username = "adkinsdevon"
 }
