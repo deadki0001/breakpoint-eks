@@ -133,7 +133,7 @@ module "node_group" {
 # ##############################################################################
 
 module "oncall" {
-  source = "../../modules/oncall"
+  source = "../../modules/grafana-oncall"
 
   project_name            = "breakpoint-eks"
   grafana_cloud_api_token = var.grafana_cloud_api_token
