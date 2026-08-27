@@ -80,4 +80,6 @@ jobs:
           done
 
       - name: Terraform Destroy
+        env:
+          TF_VAR_grafana_service_account_token: ${{ secrets.GRAFANA_SERVICE_ACCOUNT_TOKEN }}
         run: terraform destroy -auto-approve
