@@ -20,8 +20,9 @@ terraform {
 }
 
 provider "grafana" {
-  oncall_access_token = var.grafana_oncall_access_token
-  oncall_url          = var.grafana_oncall_url
+  url        = var.grafana_stack_url
+  auth       = var.grafana_service_account_token
+  oncall_url = var.grafana_oncall_url
 }
 
 resource "grafana_oncall_integration" "alertmanager" {

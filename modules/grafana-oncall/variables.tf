@@ -3,8 +3,13 @@ variable "project_name" {
   type        = string
 }
 
-variable "grafana_oncall_access_token" {
-  description = "Grafana OnCall API token - generated inside OnCall itself (OnCall -> Settings -> API Keys), NOT the org-level Grafana Cloud access policy token, which does not cover OnCall"
+variable "grafana_stack_url" {
+  description = "Your Grafana Cloud stack URL, e.g. https://bigisland1190.grafana.net"
+  type        = string
+}
+
+variable "grafana_service_account_token" {
+  description = "Grafana Cloud service account token (recommended by Grafana docs over a dedicated OnCall API token) - generated via Administration -> Service Accounts"
   type        = string
   sensitive   = true
 }

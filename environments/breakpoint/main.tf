@@ -135,8 +135,9 @@ module "node_group" {
 module "oncall" {
   source = "../../modules/grafana-oncall"
 
-  project_name                = "breakpoint-eks"
-  grafana_oncall_access_token = var.grafana_oncall_access_token
-  grafana_oncall_url          = "https://oncall-prod-eu-west-6.grafana.net/oncall/api/v1"
-  grafana_oncall_username     = "adkinsdevon"
+  project_name                  = "breakpoint-eks"
+  grafana_stack_url             = "https://bigisland1190.grafana.net"
+  grafana_service_account_token = var.grafana_service_account_token
+  grafana_oncall_url            = "https://incident-prod-eu-west-6.grafana.net/oncall/api/v1"
+  grafana_oncall_username       = "adkinsdevon"
 }
