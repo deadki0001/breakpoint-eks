@@ -1,0 +1,33 @@
+# breakpoint-load-generator.yaml
+#
+# A Deployment running multiple concurrent busybox replicas, each hammering
+# breakpoint-workload in a tight loop. Multiple parallel loops generate
+# genuine concurrent CPU pressure - a single sequential loop wasn't enough
+# to move node-wide CPU meaningfully, since each request completes before
+# the next one starts.
+#
+# Run "kubectl delete -f breakpoint-load-generator.yaml" to stop the load
+# once you've observed HPA scaling and the alert firing.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: breakpoint-load-generator
+  namespace: default
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: breakpoint-load-generator
+  template:
+    metadata:
+      labels:
+        app: breakpoint-load-generator
+    spec:
+      containers:
+        - name: load-generator
+          image: busybox
+          command:
+            - /bin/sh
+            - -c
+            - "while true; do wget -q -O- http://breakpoint-workload.default.svc.cluster.local; done"

@@ -1,0 +1,55 @@
+# breakpoint-workload.yaml
+#
+# A small deployment purpose-built to demonstrate HPA under real load.
+# Uses registry.k8s.io/hpa-example, a tiny image maintained by the
+# Kubernetes project specifically for this scenario - every HTTP request
+# to it runs a CPU-intensive loop, so hitting it with traffic genuinely
+# drives CPU usage up rather than needing a custom app.
+#
+# resources.requests.cpu is what HPA's percentage math is based on - a
+# pod at 200m cpu usage against a 100m request is "200% utilized", not
+# 200 millicores in absolute terms. Set deliberately low here (100m) so
+# a modest amount of generated load is enough to cross the HPA threshold.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: breakpoint-workload
+  namespace: default
+  labels:
+    app: breakpoint-workload
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: breakpoint-workload
+  template:
+    metadata:
+      labels:
+        app: breakpoint-workload
+    spec:
+      containers:
+        - name: breakpoint-workload
+          image: registry.k8s.io/hpa-example
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 750m
+              memory: 64Mi
+            limits:
+              cpu: 1500m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: breakpoint-workload
+  namespace: default
+spec:
+  selector:
+    app: breakpoint-workload
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP

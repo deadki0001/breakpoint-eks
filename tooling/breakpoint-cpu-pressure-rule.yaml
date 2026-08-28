@@ -1,0 +1,30 @@
+# breakpoint-cpu-pressure-rule.yaml
+#
+# NodeCPUPressure fires when node CPU usage exceeds 80%.
+#
+# rate() window is deliberately short (30s) for live-demo responsiveness -
+# a real production rule would use 5m to smooth out brief spikes and avoid
+# alert fatigue. This tradeoff (fast reaction vs noise resistance) is
+# worth stating explicitly: this rule is tuned for demonstration, not
+# production use.
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: breakpoint-cpu-pressure
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: breakpoint-cpu-pressure
+      rules:
+        - alert: NodeCPUPressure
+          expr: |
+            100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[30s])) * 100) > 80
+          for: 30s
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node {{ $labels.instance }} CPU usage above 80%"
+            description: "CPU usage on {{ $labels.instance }} has been above 80% (current value: {{ $value | printf \"%.1f\" }}%)."

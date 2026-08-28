@@ -1,0 +1,43 @@
+# breakpoint-hpa.yaml
+#
+# HorizontalPodAutoscaler targeting breakpoint-workload's CPU utilization.
+# averageUtilization: 50 means "scale up once average CPU usage across
+# all replicas exceeds 50% of what each pod requested" (100m request ->
+# scales when average usage crosses 50m per pod).
+#
+# minReplicas: 1, maxReplicas: 5 - starts at a single pod, can scale out
+# to 5 under sustained load, giving a clearly visible before/after when
+# we generate traffic.
+#
+# This requires metrics-server (already installed via the tooling
+# pipeline) - HPA reads live CPU usage from the metrics API, which
+# metrics-server is what actually populates.
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: breakpoint-workload-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: breakpoint-workload
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 60
