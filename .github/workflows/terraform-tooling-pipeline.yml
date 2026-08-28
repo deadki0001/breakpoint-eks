@@ -96,7 +96,7 @@ jobs:
             --set alertmanager.config.receivers[0].name=grafana-oncall \
             --set-string alertmanager.config.receivers[0].webhook_configs[0].url="${ALERTMANAGER_WEBHOOK_URL}" \
             --set alertmanager.config.receivers[0].webhook_configs[0].send_resolved=true \
-            --set alertmanager.config.receivers[1].name=null \
+            --set-string alertmanager.config.receivers[1].name=null \
             --wait --timeout 10m
 
       - name: Verify tooling pods
