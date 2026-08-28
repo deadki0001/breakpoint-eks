@@ -76,36 +76,26 @@ jobs:
       - name: Create monitoring namespace
         run: kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Write Alertmanager config
+      - name: Install kube-prometheus-stack (Prometheus + Grafana)
         env:
           ALERTMANAGER_WEBHOOK_URL: ${{ secrets.ALERTMANAGER_WEBHOOK_URL }}
         run: |
-          cat <<EOF > alertmanager-values.yaml
-          alertmanager:
-            config:
-              route:
-                receiver: "grafana-oncall"
-                group_by: ["alertname", "namespace"]
-                group_wait: 30s
-                group_interval: 5m
-                repeat_interval: 4h
-              receivers:
-                - name: "grafana-oncall"
-                  webhook_configs:
-                    - url: "${ALERTMANAGER_WEBHOOK_URL}"
-                      send_resolved: true
-          EOF
-
-      - name: Install kube-prometheus-stack (Prometheus + Grafana)
-        run: |
           helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
             --namespace monitoring \
-            -f alertmanager-values.yaml \
             --set grafana.adminPassword=admin \
             --set prometheus.prometheusSpec.resources.requests.cpu=200m \
             --set prometheus.prometheusSpec.resources.requests.memory=512Mi \
             --set grafana.resources.requests.cpu=100m \
             --set grafana.resources.requests.memory=256Mi \
+            --set alertmanager.config.route.receiver=grafana-oncall \
+            --set alertmanager.config.route.group_by[0]=alertname \
+            --set alertmanager.config.route.group_by[1]=namespace \
+            --set-string alertmanager.config.route.group_wait=30s \
+            --set-string alertmanager.config.route.group_interval=5m \
+            --set-string alertmanager.config.route.repeat_interval=4h \
+            --set alertmanager.config.receivers[0].name=grafana-oncall \
+            --set-string alertmanager.config.receivers[0].webhook_configs[0].url="${ALERTMANAGER_WEBHOOK_URL}" \
+            --set alertmanager.config.receivers[0].webhook_configs[0].send_resolved=true \
             --wait --timeout 10m
 
       - name: Verify tooling pods
