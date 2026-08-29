@@ -83,30 +83,66 @@ jobs:
         # scrape endpoints for them. Leaving them enabled (the chart
         # default) produces permanent false-positive "Down" alerts on any
         # EKS cluster, not a real problem with this cluster specifically.
+        # Alertmanager config is passed via a values file rather than --set
+        # flags because nested array structures (routes, receivers) are
+        # unreliably parsed by Helm's --set parser and silently dropped.
         env:
           ALERTMANAGER_WEBHOOK_URL: ${{ secrets.ALERTMANAGER_WEBHOOK_URL }}
         run: |
+          cat > prom-values.yaml << EOF
+          alertmanager:
+            config:
+              global:
+                resolve_timeout: 5m
+              route:
+                receiver: grafana-oncall
+                group_by:
+                  - alertname
+                  - namespace
+                group_wait: 30s
+                group_interval: 1m
+                repeat_interval: 1m
+                routes:
+                  - matchers:
+                      - alertname = "Watchdog"
+                    receiver: "null"
+                  - matchers:
+                      - alertname = "InfoInhibitor"
+                    receiver: "null"
+              receivers:
+                - name: grafana-oncall
+                  webhook_configs:
+                    - url: "${ALERTMANAGER_WEBHOOK_URL}"
+                      send_resolved: true
+                - name: "null"
+          grafana:
+            adminPassword: admin
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+          prometheus:
+            prometheusSpec:
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+          kubeControllerManager:
+            enabled: false
+          kubeScheduler:
+            enabled: false
+          kubeProxy:
+            enabled: false
+          kubeEtcd:
+            enabled: false
+          defaultRules:
+            rules:
+              kubernetesResources: false
+          EOF
+
           helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
             --namespace monitoring \
-            --set grafana.adminPassword=admin \
-            --set prometheus.prometheusSpec.resources.requests.cpu=200m \
-            --set prometheus.prometheusSpec.resources.requests.memory=512Mi \
-            --set grafana.resources.requests.cpu=100m \
-            --set grafana.resources.requests.memory=256Mi \
-            --set alertmanager.config.route.receiver=grafana-oncall \
-            --set alertmanager.config.route.group_by[0]=alertname \
-            --set alertmanager.config.route.group_by[1]=namespace \
-            --set-string alertmanager.config.route.group_wait=30s \
-            --set-string alertmanager.config.route.group_interval=5m \
-            --set-string alertmanager.config.route.repeat_interval=1m \
-            --set alertmanager.config.receivers[0].name=grafana-oncall \
-            --set-string alertmanager.config.receivers[0].webhook_configs[0].url="${ALERTMANAGER_WEBHOOK_URL}" \
-            --set alertmanager.config.receivers[0].webhook_configs[0].send_resolved=true \
-            --set-string alertmanager.config.receivers[1].name=null \
-            --set kubeControllerManager.enabled=false \
-            --set kubeScheduler.enabled=false \
-            --set kubeProxy.enabled=false \
-            --set kubeEtcd.enabled=false \
+            -f prom-values.yaml \
             --wait --timeout 10m
 
       - name: Verify tooling pods
