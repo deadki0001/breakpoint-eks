@@ -27,7 +27,7 @@ receivers:
 - name: grafana-oncall
   webhook_configs:
   - send_resolved: true
-    url: https://incident-prod-eu-west-6.grafana.net/oncall/integrations/v1/alertmanager/9TbhW5DUZJ3GSMtfa4WlkiFYr/
+    url: https://incident-prod-eu-west-6.grafana.net/oncall/integrations/v1/alertmanager/3RSo7ZviVQjT0yqZaXEST5aUp/
 - name: "null"
 route:
   group_by:
@@ -40,6 +40,9 @@ route:
   routes:
   - matchers:
     - alertname = "Watchdog"
+    receiver: "null"
+  - matchers:
+    - alertname = "InfoInhibitor"
     receiver: "null"
 templates:
 - /etc/alertmanager/config/*.tmpl
