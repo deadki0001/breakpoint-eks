@@ -31,3 +31,9 @@ variable "private_subnet_cidrs" {
   type        = list(string)
   default     = ["10.1.11.0/24", "10.1.12.0/24"]
 }
+
+variable "az_suffixes" {
+  description = "Availability zone suffixes to use for subnet creation. Defaults to a and b which works for most regions, but some regions like us-west-1 only have a and c - override explicitly in those cases."
+  type        = list(string)
+  default     = ["a", "b"]
+}

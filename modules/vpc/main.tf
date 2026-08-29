@@ -24,7 +24,7 @@ resource "aws_vpc" "this" {
 resource "aws_subnet" "public_az1" {
   vpc_id                  = aws_vpc.this.id
   cidr_block              = var.public_subnet_cidrs[0]
-  availability_zone       = "${var.aws_region}a"
+  availability_zone       = "${var.aws_region}${var.az_suffixes[0]}"
   map_public_ip_on_launch = true
 
   tags = {
@@ -39,7 +39,7 @@ resource "aws_subnet" "public_az1" {
 resource "aws_subnet" "public_az2" {
   vpc_id                  = aws_vpc.this.id
   cidr_block              = var.public_subnet_cidrs[1]
-  availability_zone       = "${var.aws_region}b"
+  availability_zone       = "${var.aws_region}${var.az_suffixes[1]}"
   map_public_ip_on_launch = true
 
   tags = {
@@ -54,7 +54,7 @@ resource "aws_subnet" "public_az2" {
 resource "aws_subnet" "private_az1" {
   vpc_id            = aws_vpc.this.id
   cidr_block        = var.private_subnet_cidrs[0]
-  availability_zone = "${var.aws_region}a"
+  availability_zone = "${var.aws_region}${var.az_suffixes[0]}"
 
   tags = {
     Name                              = "${var.project_name}-private-az1"
@@ -68,7 +68,7 @@ resource "aws_subnet" "private_az1" {
 resource "aws_subnet" "private_az2" {
   vpc_id            = aws_vpc.this.id
   cidr_block        = var.private_subnet_cidrs[1]
-  availability_zone = "${var.aws_region}b"
+  availability_zone = "${var.aws_region}${var.az_suffixes[1]}"
 
   tags = {
     Name                              = "${var.project_name}-private-az2"
