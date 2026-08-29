@@ -103,6 +103,9 @@ jobs:
             --format=table \
             --out-file=infracost_output.txt
 
+      - name: Print cost estimate to job log
+        run: cat infracost_output.txt
+
       - name: Post cost estimate to PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7.0.1

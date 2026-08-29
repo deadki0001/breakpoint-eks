@@ -77,6 +77,12 @@ jobs:
         run: kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Install kube-prometheus-stack (Prometheus + Grafana)
+        # kubeControllerManager, kubeScheduler, kubeProxy, and kubeEtcd are
+        # disabled here because EKS is a managed control plane - AWS runs
+        # these components on its own infrastructure and does not expose
+        # scrape endpoints for them. Leaving them enabled (the chart
+        # default) produces permanent false-positive "Down" alerts on any
+        # EKS cluster, not a real problem with this cluster specifically.
         env:
           ALERTMANAGER_WEBHOOK_URL: ${{ secrets.ALERTMANAGER_WEBHOOK_URL }}
         run: |
@@ -92,11 +98,15 @@ jobs:
             --set alertmanager.config.route.group_by[1]=namespace \
             --set-string alertmanager.config.route.group_wait=30s \
             --set-string alertmanager.config.route.group_interval=5m \
-            --set-string alertmanager.config.route.repeat_interval=4h \
+            --set-string alertmanager.config.route.repeat_interval=1m \
             --set alertmanager.config.receivers[0].name=grafana-oncall \
             --set-string alertmanager.config.receivers[0].webhook_configs[0].url="${ALERTMANAGER_WEBHOOK_URL}" \
             --set alertmanager.config.receivers[0].webhook_configs[0].send_resolved=true \
             --set-string alertmanager.config.receivers[1].name=null \
+            --set kubeControllerManager.enabled=false \
+            --set kubeScheduler.enabled=false \
+            --set kubeProxy.enabled=false \
+            --set kubeEtcd.enabled=false \
             --wait --timeout 10m
 
       - name: Verify tooling pods

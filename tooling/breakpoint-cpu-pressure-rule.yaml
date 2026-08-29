@@ -2,11 +2,13 @@
 #
 # NodeCPUPressure fires when node CPU usage exceeds 80%.
 #
-# rate() window is deliberately short (30s) for live-demo responsiveness -
-# a real production rule would use 5m to smooth out brief spikes and avoid
-# alert fatigue. This tradeoff (fast reaction vs noise resistance) is
-# worth stating explicitly: this rule is tuned for demonstration, not
-# production use.
+# rate() window is 1m - narrower windows (e.g. 30s) can return empty
+# results if fewer than 2 scrape samples fall inside the window, since
+# rate() needs at least 2 data points to compute a value. 1m reliably
+# covers 2+ samples at this stack's default 30s scrape interval. A real
+# production rule would use 5m to further smooth out brief spikes and
+# avoid alert fatigue - this is tuned for fast, reliable demo reaction,
+# not production use.
 
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -21,7 +23,7 @@ spec:
       rules:
         - alert: NodeCPUPressure
           expr: |
-            100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[30s])) * 100) > 80
+            100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 80
           for: 30s
           labels:
             severity: warning
