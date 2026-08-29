@@ -1,0 +1,65 @@
+# prom-values.yaml
+#
+# Values file for kube-prometheus-stack, committed to the repo so the
+# full YAML structure (especially nested Alertmanager routes and receivers)
+# is reliably parsed by Helm rather than fragile --set flag array indexing.
+#
+# ALERTMANAGER_WEBHOOK_URL_PLACEHOLDER is replaced at pipeline runtime by
+# the tooling pipeline using sed, so the actual URL never lands in this
+# committed file.
+
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: grafana-oncall
+      group_by:
+        - alertname
+        - namespace
+      group_wait: 30s
+      group_interval: 1m
+      repeat_interval: 1m
+      routes:
+        - matchers:
+            - alertname = "Watchdog"
+          receiver: "null"
+        - matchers:
+            - alertname = "InfoInhibitor"
+          receiver: "null"
+    receivers:
+      - name: grafana-oncall
+        webhook_configs:
+          - url: "ALERTMANAGER_WEBHOOK_URL_PLACEHOLDER"
+            send_resolved: true
+      - name: "null"
+
+grafana:
+  adminPassword: admin
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+prometheus:
+  prometheusSpec:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+
+kubeControllerManager:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+kubeProxy:
+  enabled: false
+
+kubeEtcd:
+  enabled: false
+
+defaultRules:
+  rules:
+    kubernetesResources: false
