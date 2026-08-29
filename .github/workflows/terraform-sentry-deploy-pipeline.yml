@@ -1,7 +1,7 @@
 # ##############################################################################
-# INFRASTRUCTURE PIPELINE - breakpoint-eks
+# INFRASTRUCTURE PIPELINE - sentry-eks
 #
-# Same shape as the lsd-payments pipeline, pointed at environments/breakpoint and a
+# Same shape as the lsd-payments pipeline, pointed at environments/sentry and a
 # separate state key so the two environments never touch each other's state.
 #
 # Backend state bucket lives in us-east-2 (created during the original
@@ -14,17 +14,17 @@
 #   - Push to main: plan then manual approval then apply
 # ##############################################################################
 
-name: BREAKPOINT-EKS Infrastructure Pipeline
+name: SENTRY-EKS Infrastructure Pipeline
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'environments/breakpoint/**'
+      - 'environments/sentry/**'
   push:
     branches: [main]
     paths:
-      - 'environments/breakpoint/**'
+      - 'environments/sentry/**'
   workflow_dispatch:
 
 permissions:
@@ -34,7 +34,7 @@ permissions:
 
 env:
   TF_VERSION: "1.7.5"
-  WORKING_DIR: environments/breakpoint
+  WORKING_DIR: environments/sentry
   BACKEND_REGION: us-east-2
 
 jobs:
@@ -66,7 +66,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="bucket=eks-demo-tfstate-${{ secrets.AWS_ACCOUNT_ID }}" \
-            -backend-config="key=breakpoint/terraform.tfstate" \
+            -backend-config="key=sentry/terraform.tfstate" \
             -backend-config="region=${{ env.BACKEND_REGION }}"
 
       - name: Terraform Validate
@@ -123,7 +123,7 @@ jobs:
       - name: Save cost estimate artifact
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: breakpoint-cost-estimate
+          name: sentry-cost-estimate
           path: infracost_output.txt
 
   plan:
@@ -151,7 +151,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="bucket=eks-demo-tfstate-${{ secrets.AWS_ACCOUNT_ID }}" \
-            -backend-config="key=breakpoint/terraform.tfstate" \
+            -backend-config="key=sentry/terraform.tfstate" \
             -backend-config="region=${{ env.BACKEND_REGION }}"
 
       - name: Terraform Plan
@@ -176,13 +176,13 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## BREAKPOINT-EKS Terraform Plan\n\`\`\`\n${truncated}\n\`\`\``
+              body: `## SENTRY-EKS Terraform Plan\n\`\`\`\n${truncated}\n\`\`\``
             });
 
       - name: Save plan artifact
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: breakpoint-terraform-plan
+          name: sentry-terraform-plan
           path: ${{ env.WORKING_DIR }}/plan_output.txt
 
   apply:
@@ -212,7 +212,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="bucket=eks-demo-tfstate-${{ secrets.AWS_ACCOUNT_ID }}" \
-            -backend-config="key=breakpoint/terraform.tfstate" \
+            -backend-config="key=sentry/terraform.tfstate" \
             -backend-config="region=${{ env.BACKEND_REGION }}"
 
       - name: Terraform Apply
