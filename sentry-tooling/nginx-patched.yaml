@@ -1,6 +1,6 @@
 # nginx-patched.yaml
 #
-# Replaces the vulnerable nginx:1.14.2 with nginx:1.25.3, a current stable
+# Replaces the vulnerable nginx:1.14.2 with nginx:alpine, a current stable
 # release with no known CRITICAL or HIGH CVEs at time of writing. Trivy
 # Operator re-scans automatically after the pod is replaced, the
 # trivy_image_vulnerabilities metric drops to zero for this container,
@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
         - name: sentry-demo-app
-          image: nginx:1.25.3
+          image: nginx:alpine
           ports:
             - containerPort: 80
           resources:
