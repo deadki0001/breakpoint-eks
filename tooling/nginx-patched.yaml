@@ -1,0 +1,43 @@
+# nginx-patched.yaml
+#
+# Replaces the vulnerable nginx:1.14.2 with nginx:1.25.3, a current stable
+# release with no known CRITICAL or HIGH CVEs at time of writing. Trivy
+# Operator re-scans automatically after the pod is replaced, the
+# trivy_image_vulnerabilities metric drops to zero for this container,
+# and the ImageVulnerabilityCritical alert auto-resolves with a resolved
+# notification sent via OnCall. This is the "remediation" half of the demo.
+#
+# Apply:   kubectl apply -f nginx-patched.yaml
+# This replaces the vulnerable deployment in-place via the same name.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-demo-app
+  namespace: default
+  labels:
+    app: sentry-demo-app
+    demo: patched
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sentry-demo-app
+  template:
+    metadata:
+      labels:
+        app: sentry-demo-app
+        demo: patched
+    spec:
+      containers:
+        - name: sentry-demo-app
+          image: nginx:1.25.3
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

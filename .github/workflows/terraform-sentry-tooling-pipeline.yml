@@ -1,0 +1,100 @@
+# ##############################################################################
+# TOOLING PIPELINE - sentry-eks (SENTRY)
+#
+# Runs after the cluster exists (manual trigger). Installs:
+#   - kube-prometheus-stack: Prometheus + Grafana + Alertmanager, same
+#     alerting chain as THRESHOLD but this time triggered by vulnerability
+#     findings rather than CPU pressure
+#   - Trivy Operator: scans every running container image against known CVE
+#     databases, exposes findings as VulnerabilityReport CRDs and as
+#     Prometheus metrics at /metrics, giving Prometheus a queryable
+#     time-series of the cluster's current vulnerability posture
+#   - ImageVulnerabilityCritical PrometheusRule: fires when Trivy reports
+#     any CRITICAL or HIGH severity finding against a running container
+#
+# How to run:
+#   GitHub repo -> Actions -> SENTRY-EKS Tooling Pipeline -> Run workflow
+# ##############################################################################
+
+name: SENTRY-EKS Tooling Pipeline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  CLUSTER_NAME: sentry-eks-dev
+
+jobs:
+  install-tooling:
+    name: Install Security Tooling
+    runs-on: ubuntu-latest
+    environment: production-infra
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.SENTRY_AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ env.CLUSTER_NAME }} \
+            --region ${{ secrets.SENTRY_AWS_REGION }}
+
+      - name: Verify cluster access
+        run: kubectl get nodes
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4.2.0
+        with:
+          version: v3.14.4
+
+      - name: Add Helm repos
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add aqua https://aquasecurity.github.io/helm-charts/
+          helm repo update
+
+      - name: Create monitoring namespace
+        run: kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Install kube-prometheus-stack
+        env:
+          ALERTMANAGER_WEBHOOK_URL: ${{ secrets.ALERTMANAGER_WEBHOOK_URL }}
+        run: |
+          sed "s|ALERTMANAGER_WEBHOOK_URL_PLACEHOLDER|${ALERTMANAGER_WEBHOOK_URL}|g" \
+            prom-values.yaml > prom-values-rendered.yaml
+
+          helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            -f prom-values-rendered.yaml \
+            --wait --timeout 10m
+
+      - name: Create trivy-system namespace
+        run: kubectl create namespace trivy-system --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Install Trivy Operator
+        run: |
+          helm upgrade --install trivy-operator aqua/trivy-operator \
+            --namespace trivy-system \
+            --set trivy.ignoreUnfixed=true \
+            --set operator.metricsBindAddress=":5000" \
+            --set serviceMonitor.enabled=true \
+            --set serviceMonitor.namespace=monitoring \
+            --set serviceMonitor.labels.release=kube-prometheus-stack \
+            --wait --timeout 10m
+
+      - name: Apply vulnerability alert rule
+        run: kubectl apply -f sentry-tooling/image-vulnerability-rule.yaml
+
+      - name: Verify tooling pods
+        run: |
+          kubectl get pods -n monitoring
+          kubectl get pods -n trivy-system

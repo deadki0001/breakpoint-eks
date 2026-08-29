@@ -1,0 +1,42 @@
+# nginx-vulnerable.yaml
+#
+# Deploys nginx:1.14.2, a genuinely old image with multiple known CRITICAL
+# and HIGH severity CVEs documented in the NVD. Trivy Operator will detect
+# these within 1-2 minutes of the pod being admitted and expose the count
+# via trivy_image_vulnerabilities, triggering the ImageVulnerabilityCritical
+# alert. This is the "problem" half of the demo.
+#
+# Apply:   kubectl apply -f nginx-vulnerable.yaml
+# Remove:  kubectl delete -f nginx-vulnerable.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-demo-app
+  namespace: default
+  labels:
+    app: sentry-demo-app
+    demo: vulnerable
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sentry-demo-app
+  template:
+    metadata:
+      labels:
+        app: sentry-demo-app
+        demo: vulnerable
+    spec:
+      containers:
+        - name: sentry-demo-app
+          image: nginx:1.14.2
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
